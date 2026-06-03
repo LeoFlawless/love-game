@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, RotateCcw, Sparkles, Gift, Star, Laugh, Ticket } from "lucide-react";
+import { Heart, RotateCcw, Gift, Star, Laugh, Ticket } from "lucide-react";
 
 export default function ConfessionLoveGame() {
   const canvasRef = useRef(null);
@@ -367,7 +367,7 @@ export default function ConfessionLoveGame() {
           <div className="relative min-h-[500px] overflow-hidden rounded-[1.5rem] border border-white bg-gradient-to-br from-white to-pink-50 p-5 shadow-inner md:p-8">
             {!started && (
               <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-                <Sparkles className="mb-4 text-pink-500" size={46} />
+                <Star className="mb-4 text-pink-500" size={46} />
                 <h2 className="text-2xl font-bold text-slate-800">
                   {receiverName} 收到了一张神秘心动彩票
                 </h2>
