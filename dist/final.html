@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>给婷姐姐的一句话</title>
+  <style>
+    :root{
+      --bg:#fde2ea;
+      --pink:#ff4f87;
+      --pink2:#ff77a4;
+      --text:#ff4f87;
+      --card: rgba(255,255,255,.45);
+      --shadow: 0 12px 30px rgba(255,79,135,.18);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; height:100vh; overflow:hidden;
+      font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC","Microsoft YaHei", Arial;
+      background: var(--bg);
+      color:#b52a59;
+    }
+
+    canvas#dust{
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* 下落爱心（默认密度：普通） */
+    .fall-heart{
+      position: fixed;
+      top: -30px;
+      width: 18px; height: 18px;
+      transform: rotate(45deg);
+      background: rgba(255,79,135,.25);
+      border-radius: 3px;
+      pointer-events:none;
+      z-index:0;
+      animation: fallDown linear forwards;
+      filter: blur(.1px);
+      opacity:0;
+    }
+    .fall-heart::before,.fall-heart::after{
+      content:"";
+      position:absolute;
+      width:18px;height:18px;
+      background: rgba(255,79,135,.25);
+      border-radius:50%;
+    }
+    .fall-heart::before{left:-9px; top:0}
+    .fall-heart::after{left:0; top:-9px}
+
+    @keyframes fallDown{
+      from{opacity:0; transform: translateY(-20px) rotate(45deg) scale(.85);}
+      12%{opacity:.9}
+      to{opacity:0; transform: translateY(calc(100vh + 90px)) rotate(45deg) scale(1.2);}
+    }
+
+    /* 三幕 */
+    .screen{
+      position:absolute; inset:0;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding-top:70px;
+      transition: opacity .45s ease, transform .45s ease;
+      z-index:2;
+    }
+    .hidden{
+      opacity:0;
+      pointer-events:none;
+      transform: translateY(10px);
+    }
+    .card{
+      width:min(860px, 92vw);
+      padding: 12px 16px 26px;
+      text-align:center;
+    }
+    h1{
+      margin:0 0 18px;
+      font-size: clamp(34px, 4.2vw, 56px);
+      color: var(--pink);
+      letter-spacing:.5px;
+      font-weight:900;
+    }
+
+    .startBtn, button.action{
+      border:none;
+      border-radius:12px;
+      padding:14px 22px;
+      font-size:18px;
+      font-weight:900;
+      cursor:pointer;
+      box-shadow: var(--shadow);
+      background: var(--pink);
+      color:#fff;
+      transition: transform .12s ease, filter .2s ease, opacity .2s ease;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .startBtn{padding:14px 28px; margin-top:10px;}
+    .startBtn:hover, button.action:hover{filter:brightness(1.03)}
+    .startBtn:active, button.action:active{transform: translateY(1px) scale(.99)}
+
+    .hint{
+      margin-top: 10px;
+      font-size: 15px;
+      color: rgba(181,42,89,.72);
+    }
+
+    /* 第一幕打字机 */
+    .preLines{
+      margin: 24px auto 0;
+      width: min(720px, 92vw);
+      padding: 10px 0 0;
+      display:none;
+    }
+    .typeLine{
+      margin: 14px 0;
+      font-size:22px;
+      color: var(--text);
+      font-weight:800;
+      min-height:1.4em;
+      opacity:0;
+      transform: translateY(8px);
+      transition: opacity .45s ease, transform .45s ease;
+      white-space: pre-wrap;
+    }
+    .typeLine.show{opacity:1; transform: translateY(0);}
+    .typeLine.small{
+      font-size:18px;
+      font-weight:700;
+      color: rgba(255,79,135,.9);
+    }
+
+    /* 第一幕按钮 */
+    .btnRow{
+      margin-top: 24px;
+      position:relative;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap: 14px;
+      height: 70px;
+      width: min(420px, 92vw);
+      margin-left:auto;
+      margin-right:auto;
+      display:none;
+    }
+    #noBtn{
+      background: var(--pink2);
+      position:relative;
+      transform-origin:center;
+    }
+
+    /* 第二幕文字卡片 */
+    .confessionWrap{
+      margin: 10px auto 0;
+      width: min(820px, 94vw);
+      padding: 16px 18px;
+      background: rgba(255,255,255,.45);
+      border: 1px solid rgba(255,255,255,.6);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(6px);
+      text-align:center;
+    }
+    .confLine{
+      margin: 14px 0;
+      font-size: 20px;
+      line-height: 1.7;
+      color: rgba(150,30,70,.92);
+      opacity:0;
+      transform: translateY(10px);
+      transition: opacity .7s ease, transform .7s ease;
+      font-weight: 800;
+    }
+    .confLine.show{opacity:1; transform: translateY(0);}
+
+    /* 第二幕 “继续” 按钮行 */
+    .finalRevealRow{
+      margin: 18px auto 0;
+      display:none;
+      justify-content:center;
+      align-items:center;
+    }
+
+    /* 第三幕：最终爱心+名字 */
+    .finalStage{
+      width:min(900px, 94vw);
+      margin: 0 auto;
+      padding-top: 10px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap: 16px;
+    }
+    .finalBox{
+      margin-top: 8px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height: 300px;
+      opacity:0;
+      transform: translateY(12px) scale(.98);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .finalBox.show{opacity:1; transform: translateY(0) scale(1);}
+
+    .bigHeart{
+      width: min(560px, 86vw);
+      aspect-ratio: 1 / 0.9;
+      position:relative;
+      filter: drop-shadow(0 18px 40px rgba(255,79,135,.25));
+    }
+    .bigHeart::before,
+    .bigHeart::after{
+      content:"";
+      position:absolute;
+      width: 52%;
+      height: 68%;
+      background: rgba(255,79,135,.20);
+      border-radius: 999px 999px 0 0;
+      top: 8%;
+    }
+    .bigHeart::before{
+      left: 18%;
+      transform: rotate(-45deg);
+      transform-origin: 0 100%;
+    }
+    .bigHeart::after{
+      left: 30%;
+      transform: rotate(45deg);
+      transform-origin: 100% 100%;
+    }
+    .bigHeartInner{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding: 18px;
+    }
+    .finalText{
+      font-size: clamp(42px, 5vw, 76px);
+      font-weight: 1000;
+      color: var(--pink);
+      letter-spacing: .5px;
+      line-height: 1.1;
+      text-shadow: 0 8px 22px rgba(255,79,135,.18);
+    }
+    .finalText span{
+      display:inline-block;
+      opacity:0;
+      transform: translateY(10px) scale(.98);
+      transition: opacity .35s ease, transform .35s ease;
+      will-change: transform, opacity;
+    }
+    .finalText span.show{opacity:1; transform: translateY(0) scale(1);}
+
+    @media (max-width:520px){
+      .typeLine{font-size: 19px}
+      button.action, .startBtn{padding: 12px 16px; font-size: 16px}
+      .confLine{font-size: 18px}
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="dust"></canvas>
+
+  <!-- 幕0：开始 -->
+  <section class="screen" id="screen0">
+    <div class="card">
+      <h1>我有话想对你说… </h1>
+      <button class="startBtn" id="startBtn">点我一下~</button>
+      <div class="hint">（点一下开始，音乐就会播放哦🎧）</div>
+    </div>
+  </section>
+
+  <!-- 幕1：打字机 + 愿意/不愿意 -->
+  <section class="screen hidden" id="screen1">
+    <div class="card">
+      <h1>我有话想对你说… Ovo</h1>
+
+      <div class="preLines" id="preLines">
+
+        <!-- 故事版 -->
+        <div class="typeLine" data-text="一开始我就觉得这个小女孩还挺不错的声音好听又漂亮"></div>
+        <div class="typeLine small" data-text="后来我发现你真的超级可爱，特别真诚性格也很好✨"></div>
+        <div class="typeLine small" data-text="每次我都会偷偷期待：这次会不会是你😎"></div>
+        <div class="typeLine" data-text="💗"></div>
+
+        <!-- 笨拙表达感 -->
+        <div class="typeLine small" data-text="书到用时方恨少，怪我语文没学好📖"></div>
+        <div class="typeLine small" data-text="可能表达有点笨笨的，没有把心里的话都说清楚🥺"></div>
+        <div class="typeLine" data-text="但我想让你知道——我喜欢你是很认真的💞"></div>
+        <div class="typeLine small" data-text="我可能不是最会说话的人，但我是最想陪着你的人🌙"></div>
+
+        <!-- 情绪推进 -->
+        <div class="typeLine small" data-text="我第一次和一个女孩子打这么久电话，让我更多的了解你📞"></div>
+        <div class="typeLine small" data-text="你说你不开心身体不舒服的那刻，我的心没理由地抽了一下😣"></div>
+        <div class="typeLine" data-text="我不想再不够勇敢了——这一次，我不想放手✨"></div>
+        <div class="typeLine small" data-text="我想变得更好，想和姐姐每天都吃甜甜的小蛋糕🍰"></div>
+        <div class="typeLine small" data-text="想和姐姐打游戏，虽然我手机游戏笨笨的会成为带你赢的人！🎮"></div>
+
+        <!-- 甜甜收束 -->
+        <div class="typeLine" data-text="你笑起来真的超级超级可爱 😍"></div>
+        <div class="typeLine small" data-text="和你在一起时间过得特别快 ✨"></div>
+        <div class="typeLine small" data-text="每天都想见到你 ❣️"></div>
+        <div class="typeLine" data-text="我是真的真的超级超级喜欢你 💗"></div>
+        <div class="typeLine small" data-text="你愿意继续更多的喜欢我吗？做我的公主殿下🥰"></div>
+
+      </div>
+
+      <div class="btnRow" id="btnRow">
+        <button class="action" id="yesBtn">愿意 💗</button>
+        <button class="action" id="noBtn">不愿意 😭</button>
+      </div>
+
+      <div class="hint" id="hint1" style="display:none;">（哼，你敢把鼠标移到“不愿意”试呢）</div>
+    </div>
+  </section>
+
+  <!-- 幕2：愿意后文字一排排出现，最后给“继续”按钮 -->
+  <section class="screen hidden" id="screen2">
+    <div class="card">
+      <h1>嘿嘿…那我就不装啦 💘</h1>
+
+      <div class="confessionWrap" id="confessionWrap"></div>
+
+      <div class="finalRevealRow" id="finalRevealRow">
+        <button class="action" id="goFinalBtn">继续看最后一句 💗</button>
+      </div>
+
+      <div class="hint">（点按钮后，会进入最后一幕哦）</div>
+    </div>
+  </section>
+
+  <!-- 幕3：很多爱心 + 中间峰峰❤️依依 -->
+  <section class="screen hidden" id="screen3">
+    <div class="finalStage">
+      <h1 style="margin-bottom:0;">嘘…看这里 💞</h1>
+
+      <div class="finalBox" id="finalBox">
+        <div class="bigHeart" id="bigHeart">
+          <div class="bigHeartInner">
+            <div class="finalText" id="finalText"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hint">（峰 ❤️ 婷）</div>
+    </div>
+  </section>
+
+  <audio id="bgm" preload="auto" loop>
+    <source src="暧昧期.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    /***********************
+     * 小工具
+     ***********************/
+    function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+    function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+    /***********************
+     * 爱心下落（密度可动态调）
+     ***********************/
+    let heartSpawnMs = 420; // 默认：普通密度
+    let heartTimer = setInterval(spawnFallingHeart, heartSpawnMs);
+
+    function setHeartDensity(ms){
+      heartSpawnMs = ms;
+      clearInterval(heartTimer);
+      heartTimer = setInterval(spawnFallingHeart, heartSpawnMs);
+    }
+
+    function spawnFallingHeart(){
+      const h = document.createElement("div");
+      h.className = "fall-heart";
+      h.style.left = (Math.random() * window.innerWidth) + "px";
+      const s = 0.55 + Math.random()*1.25;
+      h.style.transform = `rotate(45deg) scale(${s})`;
+      const dur = 5.2 + Math.random()*6.8;
+      h.style.animationDuration = dur + "s";
+      document.body.appendChild(h);
+      setTimeout(()=>h.remove(), dur*1000);
+    }
+
+    /***********************
+     * 星尘系统（canvas）
+     ***********************/
+    const canvas = document.getElementById("dust");
+    const ctx = canvas.getContext("2d");
+    let W=0,H=0, DPR=1;
+
+    function resize(){
+      DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      W = Math.floor(window.innerWidth);
+      H = Math.floor(window.innerHeight);
+      canvas.width = Math.floor(W * DPR);
+      canvas.height = Math.floor(H * DPR);
+      canvas.style.width = W+"px";
+      canvas.style.height = H+"px";
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    function heartPoints(cx, cy, scale, n){
+      const pts = [];
+      for(let i=0;i<n;i++){
+        const t = (i/n) * Math.PI * 2;
+        const x = 16 * Math.pow(Math.sin(t), 3);
+        const y = 13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t);
+        pts.push({ x: cx + (x/18)*scale, y: cy - (y/18)*scale });
+      }
+      return pts;
+    }
+
+    const dust = [];
+    let dustMode = "idle"; // idle | converge | shimmer
+    let shimmerT = 0;
+
+    function randEdgePos(){
+      const side = Math.floor(Math.random()*4);
+      const pad = 10;
+      if(side===0) return {x: Math.random()*W, y: -pad};
+      if(side===1) return {x: W+pad, y: Math.random()*H};
+      if(side===2) return {x: Math.random()*W, y: H+pad};
+      return {x: -pad, y: Math.random()*H};
+    }
+
+    function spawnConvergeHeart(centerX, centerY){
+      // 清掉旧 shape（保留 burst）
+      for(let i=dust.length-1;i>=0;i--){
+        if(dust[i].kind !== "burst") dust.splice(i,1);
+      }
+      const s1 = Math.min(W,H)*0.25;
+      const s2 = Math.min(W,H)*0.27;
+      const pts = heartPoints(centerX, centerY, s1, 300).concat(heartPoints(centerX, centerY, s2, 260));
+
+      for(const target of pts){
+        const start = randEdgePos();
+        dust.push({
+          kind:"shape",
+          x:start.x, y:start.y, vx:0, vy:0,
+          tx:target.x, ty:target.y,
+          jitter: Math.random()*Math.PI*2,
+          baseR: 1.2 + Math.random()*1.7,
+          life:0
+        });
+      }
+      dustMode = "converge";
+      shimmerT = 0;
+    }
+
+    function burstAt(x, y, opts={}){
+      const count = opts.count ?? 10;
+      const power = opts.power ?? 1.6;
+      const glow  = opts.glow  ?? true;
+      const radiusBoost = opts.radiusBoost ?? 1.0;
+
+      for(let i=0;i<count;i++){
+        const a = Math.random()*Math.PI*2;
+        const sp = (1.0 + Math.random()*1.8) * power;
+        dust.push({
+          kind:"burst",
+          phase:0,
+          x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
+          jitter: Math.random()*Math.PI*2,
+          baseR:(1.0 + Math.random()*1.5) * radiusBoost,
+          life:0,
+          explodeFrames: 16 + Math.floor(Math.random()*8),
+          glowFrames: glow ? (32 + Math.floor(Math.random()*26)) : 0
+        });
+      }
+    }
+
+    function stepPhysics(){
+      if(dustMode==="converge"){
+        let allClose = true;
+        for(const p of dust){
+          if(p.kind!=="shape") continue;
+          const dx = p.tx - p.x, dy = p.ty - p.y;
+          const dist = Math.hypot(dx,dy);
+          const k = 0.010, damp=0.86;
+          p.vx = (p.vx + dx*k) * damp;
+          p.vy = (p.vy + dy*k) * damp;
+          p.x += p.vx; p.y += p.vy; p.life++;
+          if(dist > 2.8) allClose = false;
+        }
+        if(allClose) dustMode="shimmer";
+      }
+
+      if(dustMode==="shimmer"){
+        shimmerT += 0.02;
+        for(const p of dust){
+          if(p.kind!=="shape") continue;
+          const a = p.jitter + shimmerT;
+          p.x += Math.cos(a)*0.15;
+          p.y += Math.sin(a*1.2)*0.12;
+        }
+      }
+
+      for(let i=dust.length-1;i>=0;i--){
+        const p = dust[i];
+        if(p.kind!=="burst") continue;
+        p.life++;
+        if(p.phase===0){
+          p.vx*=0.90; p.vy*=0.90;
+          p.x+=p.vx; p.y+=p.vy;
+          if(p.life>=p.explodeFrames){
+            p.phase=1; p.life=0;
+            p.vx*=0.35; p.vy*=0.35;
+          }
+        }else{
+          p.vx*=0.94; p.vy*=0.94;
+          p.vy-=0.006;
+          p.x+=p.vx; p.y+=p.vy;
+          if(p.life>=p.glowFrames) dust.splice(i,1);
+        }
+      }
+    }
+    setInterval(stepPhysics, 16);
+
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      for(const p of dust){
+        const tw = 0.55 + 0.45*Math.sin(p.jitter + performance.now()*0.006);
+        const r = p.baseR * tw;
+
+        let alpha = 0.8;
+        if(p.kind==="shape"){
+          alpha = (dustMode==="converge" ? Math.min(1, p.life/40) : 1) * 0.78;
+        } else if(p.kind==="burst"){
+          alpha = (p.phase===0) ? 0.92 : 0.75 * (1 - (p.life / Math.max(1,p.glowFrames)));
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(255,79,135,${alpha})`;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(p.x - (p.vx||0)*2.2, p.y - (p.vy||0)*2.2, r*0.55, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(255,119,164,${alpha*0.55})`;
+        ctx.fill();
+      }
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+
+    /***********************
+     * DOM
+     ***********************/
+    const bgm = document.getElementById("bgm");
+
+    const screen0 = document.getElementById("screen0");
+    const screen1 = document.getElementById("screen1");
+    const screen2 = document.getElementById("screen2");
+    const screen3 = document.getElementById("screen3");
+
+    const startBtn = document.getElementById("startBtn");
+    const preLines = document.getElementById("preLines");
+    const btnRow = document.getElementById("btnRow");
+    const hint1 = document.getElementById("hint1");
+
+    const yesBtn = document.getElementById("yesBtn");
+    const noBtn  = document.getElementById("noBtn");
+
+    const confessionWrap = document.getElementById("confessionWrap");
+    const finalRevealRow = document.getElementById("finalRevealRow");
+    const goFinalBtn     = document.getElementById("goFinalBtn");
+
+    const finalBox = document.getElementById("finalBox");
+    const bigHeart = document.getElementById("bigHeart");
+    const finalTextEl = document.getElementById("finalText");
+
+    async function tryPlayMusic(){
+      try{
+        const src = bgm.querySelector("source")?.getAttribute("src") || "";
+        if(!src) return;
+        const p = bgm.play();
+        if(p && typeof p.then === "function") await p;
+      }catch(e){}
+    }
+
+    /***********************
+     * 第一幕：逐字 + 小烟花
+     ***********************/
+    const TYPE_BASE_DELAY = 150;
+    const TYPE_JITTER     = 60;
+    const TYPE_END_PAUSE  = 520;
+    const LINE_FADE_IN    = 220;
+
+    async function typeInto(el, text){
+      el.textContent = "";
+      el.classList.add("show");
+      await sleep(LINE_FADE_IN);
+
+      const chars = Array.from(text);
+      for (let i = 0; i < chars.length; i++) {
+        const ch = chars[i];
+        el.textContent += ch;
+
+        if (ch.trim() && i % 2 === 0) {
+          const r = el.getBoundingClientRect();
+          const x = r.left + r.width / 2 + (Math.random() * 90 - 45);
+          const y = r.top  + r.height / 2 + (Math.random() * 20 - 10);
+          burstAt(x, y, { count: 6, power: 1.45, glow: true, radiusBoost: 0.85 });
+        }
+
+        const d = TYPE_BASE_DELAY + Math.random()*TYPE_JITTER;
+        await sleep(d);
+      }
+
+      const rr = el.getBoundingClientRect();
+      burstAt(rr.left + rr.width/2, rr.top + rr.height/2, { count: 14, power: 1.95, glow: true, radiusBoost: 1.0 });
+    }
+
+    async function revealScreen1Typewriter(){
+      preLines.style.display = "block";
+      const items = Array.from(preLines.querySelectorAll(".typeLine"));
+      for(const el of items){
+        const txt = el.getAttribute("data-text") || "";
+        await typeInto(el, txt);
+        await sleep(TYPE_END_PAUSE);
+      }
+      await sleep(700);
+      btnRow.style.display = "flex";
+      hint1.style.display = "block";
+    }
+
+    /***********************
+     * 不愿意按钮：跑 + 变小 + 变远
+     ***********************/
+    let escapeCount = 0;
+    function moveNoButton(){
+      escapeCount++;
+      const noScale = clamp(1.0 - escapeCount * 0.10, 0.22, 1.0);
+      noBtn.style.transform = `scale(${noScale})`;
+
+      const bw = noBtn.offsetWidth * noScale;
+      const bh = noBtn.offsetHeight * noScale;
+      const padding = 14;
+      const yesRect = yesBtn.getBoundingClientRect();
+
+      for(let attempt=0; attempt<30; attempt++){
+        const x = padding + Math.random() * (window.innerWidth  - bw - padding*2);
+        const y = padding + Math.random() * (window.innerHeight - bh - padding*2);
+
+        const newRect = { left:x, top:y, right:x+bw, bottom:y+bh };
+        const overlapYes =
+          !(newRect.right < yesRect.left ||
+            newRect.left > yesRect.right ||
+            newRect.bottom < yesRect.top ||
+            newRect.top > yesRect.bottom);
+
+        const cx = (newRect.left + newRect.right)/2;
+        const cy = (newRect.top + newRect.bottom)/2;
+        const ycx = (yesRect.left + yesRect.right)/2;
+        const ycy = (yesRect.top + yesRect.bottom)/2;
+        const dist = Math.hypot(cx-ycx, cy-ycy);
+
+        if(!overlapYes && dist > 160){
+          noBtn.style.position = "fixed";
+          noBtn.style.left = x + "px";
+          noBtn.style.top  = y + "px";
+          noBtn.style.zIndex = 10;
+          return;
+        }
+      }
+    }
+    noBtn.addEventListener("mouseenter", moveNoButton);
+    noBtn.addEventListener("mousemove", moveNoButton);
+    noBtn.addEventListener("touchstart", (e)=>{ e.preventDefault(); moveNoButton(); }, {passive:false});
+    noBtn.addEventListener("click", (e)=>{ e.preventDefault(); moveNoButton(); });
+
+    /***********************
+     * 第二幕：文字慢慢出现 -> 出“继续”按钮
+     ***********************/
+    const yesLines = [
+      "嘿嘿！我也愿意！！！",
+      "",
+      "你在我这里是最特殊的存在哦 🥰",
+      "",
+      "以后一起做很多很多甜蜜的事吧 🎉",
+      "",
+      "我想每天睁眼就见到你 💝",
+      "",
+      "我想牵着你的手一起走路 🚀",
+      "",
+      "我想在你累的时候抱着你 💞",
+      "",
+      "让你能够在我这里充充电 🫂",
+      "",
+      "我们一起看电影、吃小蛋糕、打游戏、看月亮 ✨",
+      "",
+      "总之——就是想和你一直在一起 ❤️",
+      "",
+      "想和你一起拥有一个属于我们的小窝 🏠",
+    ];
+    async function revealYesLinesSlower(){
+      confessionWrap.innerHTML = "";
+      finalRevealRow.style.display = "none";
+
+      for(const t of yesLines){
+        const div = document.createElement("div");
+        div.className = "confLine";
+        div.textContent = t === "" ? " " : t;
+        confessionWrap.appendChild(div);
+
+        await sleep(520);
+        div.classList.add("show");
+        await sleep(t === "" ? 560 : 1180);
+      }
+
+      await sleep(680);
+      finalRevealRow.style.display = "flex";
+    }
+
+    /***********************
+     * 第三幕：进入后（更多爱心 + 聚拢爱心 + 名字逐字）
+     ***********************/
+    function delayForIndex(i, n){
+      const t = n <= 1 ? 1 : i/(n-1);
+      const ease = 1 - Math.pow(1 - t, 2.2);
+      const base = 95;
+      const max  = 280;
+      return Math.round(base + (max-base)*ease);
+    }
+
+    async function typeFinalText(text){
+      finalTextEl.innerHTML = "";
+      const chars = Array.from(text);
+
+      for(let i=0;i<chars.length;i++){
+        const ch = chars[i];
+        const sp = document.createElement("span");
+        sp.textContent = ch === " " ? "\u00A0" : ch;
+        finalTextEl.appendChild(sp);
+
+        await sleep(delayForIndex(i, chars.length));
+        sp.classList.add("show");
+
+        const br = sp.getBoundingClientRect();
+        const x = br.left + br.width/2;
+        const y = br.top  + br.height/2;
+
+        const trimmed = ch.trim();
+        if(trimmed === "❤️" || trimmed === "❤" || trimmed === "♥"){
+          burstAt(x, y, { count: 54, power: 3.4, glow: true, radiusBoost: 1.45 });
+          burstAt(x, y, { count: 30, power: 2.3, glow: true, radiusBoost: 1.10 });
+        } else if(trimmed){
+          burstAt(x, y, { count: 16, power: 2.2, glow: true, radiusBoost: 1.0 });
+        }
+
+        await sleep(Math.round(delayForIndex(i, chars.length) * 0.7));
+      }
+    }
+
+    async function enterFinalScene(){
+      // 爱心更密：像你图里那种“很多爱心”
+      setHeartDensity(160);
+
+      // 显示大爱心容器
+      finalBox.classList.add("show");
+
+      // 星尘聚拢成爱心
+      await sleep(220);
+      const r = bigHeart.getBoundingClientRect();
+      const cx = r.left + r.width/2;
+      const cy = r.top  + r.height/2;
+      spawnConvergeHeart(cx, cy);
+
+      // 逐字出现
+      await sleep(560);
+      await typeFinalText("邱宇峰 ❤️ 王婷");
+    }
+
+    /***********************
+     * 流程
+     ***********************/
+    let started = false;
+
+    startBtn.addEventListener("click", async ()=>{
+      if(started) return;
+      started = true;
+
+      screen0.classList.add("hidden");
+      await sleep(420);
+      screen1.classList.remove("hidden");
+
+      tryPlayMusic();
+      await revealScreen1Typewriter();
+    });
+
+    yesBtn.addEventListener("click", async ()=>{
+      screen1.classList.add("hidden");
+      await sleep(420);
+      screen2.classList.remove("hidden");
+
+      await revealYesLinesSlower();
+    });
+
+    goFinalBtn.addEventListener("click", async ()=>{
+      // 切到第三幕（像你说的“到另外一幕”）
+      screen2.classList.add("hidden");
+      await sleep(420);
+      screen3.classList.remove("hidden");
+
+      await enterFinalScene();
+    });
+
+    // 兜底：音乐被拦截就再点一下页面
+    document.body.addEventListener("click", ()=>{
+      if(started && bgm.paused){
+        bgm.play().catch(()=>{});
+      }
+    });
+  </script>
+</body>
+</html>
